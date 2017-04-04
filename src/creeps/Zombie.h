@@ -2,11 +2,12 @@
 #define ZOMBIE_H
 
 #include <string>
-#include <math.h>
+#include <cmath>
 #include <random>
 #include <vector>
 #include <utility>
 #include <SDL2/SDL.h>
+
 #include "../collision/HitBox.h"
 #include "../basic/Entity.h"
 #include "../collision/CollisionHandler.h"
@@ -72,16 +73,18 @@ enum class ZombieState {
 
 class Zombie : public Movable {
 public:
-    Zombie(int32_t id, const SDL_Rect &dest, const SDL_Rect &movementSize, const SDL_Rect &projectileSize,
-        const SDL_Rect &damageSize, int health = ZOMBIE_INIT_HP, ZombieState state = ZombieState::ZOMBIE_IDLE,
-        int step = 0, ZombieDirection dir = ZombieDirection::DIR_INVALID, int frame = ZOMBIE_FRAMES);
+    Zombie(const int32_t id, const SDL_Rect& dest, const SDL_Rect& movementSize, const SDL_Rect& projectileSize,
+        const SDL_Rect& damageSize, const int health = ZOMBIE_INIT_HP,
+        const ZombieState state = ZombieState::ZOMBIE_IDLE,
+        const int step = 0, const ZombieDirection dir = ZombieDirection::DIR_INVALID,
+        const int frame = ZOMBIE_FRAMES);
 
     virtual ~Zombie();
 
     void onCollision();
 
     void collidingProjectile(int damage);
-    
+
     void move(float moveX, float moveY, CollisionHandler& ch) override;  // move method
 
     void generateMove();                    // A* movement
@@ -89,9 +92,9 @@ public:
     bool isMoving() const;                  // Returns if the zombie should be moving
 
     int detectObj() const;                  // detect objects in vicinity
-    
+
     void attack();                          // attack/destroy marines, turrets, or barricades
-    
+
     void die();                             // zombie die method
 
     ZombieDirection getMoveDir();           // get move direction

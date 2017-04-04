@@ -33,3 +33,8 @@ bin/
 #Code::Blocks
 *.cbp
 *.layout
+
+#vim
+*.swp
+
+*.txt

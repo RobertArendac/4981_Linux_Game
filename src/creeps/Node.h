@@ -6,9 +6,9 @@
 --
 -- DATE:        February 1, 2017
 --
--- DESIGNER:    Fred Yang, Robert Arendac
+-- DESIGNER:    Fred Yang
 --
--- PROGRAMMER:  Fred Yang, Robert Arendac
+-- PROGRAMMER:  Fred Yang
 --
 -- NOTES:
 -- Used for the A* algorithm in navigating the map
@@ -16,7 +16,7 @@
 
 #ifndef NODE_H
 #define NODE_H
-#include <math.h>
+#include <cmath>
 #include <queue>
 #include "../game/GameMap.h"
 #include "../log/log.h"
