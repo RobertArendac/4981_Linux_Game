@@ -2,19 +2,19 @@
 * Header: Zombie.h
 *
 * Functions:
-*    
 *
-* Date: 
 *
-* Revisions: 
+* Date:
+*
+* Revisions:
 * Edited By : Yiaoping Shu- Style guide
 *
-* Designer: 
+* Designer:
 *
-* Author: 
+* Author:
 *
 * Notes:
-*  
+*
 ------------------------------------------------------------------------------*/
 #ifndef ZOMBIE_H
 #define ZOMBIE_H
@@ -99,11 +99,14 @@ public:
 
     virtual ~Zombie();
 
+
     void onCollision();
 
     void collidingProjectile(int damage);
 
     void move(float moveX, float moveY, CollisionHandler& ch) override;  // move method
+    int getHealth() const {return health;}
+    void setHealth(const int h) {health = h;}
 
     void generateMove();                    // A* movement
 
