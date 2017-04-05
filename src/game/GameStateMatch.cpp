@@ -16,8 +16,6 @@
 #include "../map/Map.h"
 #include "Game.h"
 
-
-
 GameStateMatch::GameStateMatch(Game& g, const int gameWidth, const int gameHeight) : GameState(g),
         player(), base(), camera(gameWidth,gameHeight){}
 

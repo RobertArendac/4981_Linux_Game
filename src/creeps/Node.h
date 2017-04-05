@@ -18,7 +18,7 @@
 #define NODE_H
 #include <cmath>
 #include <queue>
-#include "../game/GameMap.h"
+#include "../map/Map.h"
 #include "../log/log.h"
 
 // 8 possible directions
@@ -32,9 +32,9 @@ static constexpr int EXTEND_COST = 14;
 static constexpr int TILE_SIZE   = 100;
 static constexpr int TILE_OFFSET = 0;
 
-static int closedNodes[ROWS][COLS]; // array of closed nodes (evaluated)
-static int openNodes[ROWS][COLS];   // array of open nodes (to be evaluated)
-static int dirMap[ROWS][COLS];      // array of directions
+static int closedNodes[M_HEIGHT][M_WIDTH]; // array of closed nodes (evaluated)
+static int openNodes[M_HEIGHT][M_WIDTH];   // array of open nodes (to be evaluated)
+static int dirMap[M_HEIGHT][M_WIDTH];      // array of directions
 
 /**
  * 8 possible movements

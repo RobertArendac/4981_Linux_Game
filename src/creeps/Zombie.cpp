@@ -6,6 +6,7 @@
 #include "Zombie.h"
 #include "../game/GameManager.h"
 #include "../log/log.h"
+#include "../map/Map.h"
 using namespace std;
 
 Zombie::Zombie(const int32_t id, const SDL_Rect& dest, const SDL_Rect& movementSize, const SDL_Rect& projectileSize,
@@ -293,6 +294,9 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
     // temp index
     int i, j;
 
+    //Boolean map of obstacles
+    auto gameMap = getAIMap();
+
     // priority queue index
     int index = 0;
 
@@ -307,9 +311,9 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
     static array<priority_queue<Node>, 2> pq;
 
     // reset the node maps
-    memset(closedNodes, 0, sizeof(int) * ROWS * COLS);
-    memset(openNodes, 0, sizeof(int) * ROWS * COLS);
-    memset(dirMap, 0, sizeof(int) * ROWS * COLS);
+    memset(closedNodes, 0, sizeof(int) * M_WIDTH * M_HEIGHT);
+    memset(openNodes, 0, sizeof(int) * M_WIDTH * M_HEIGHT);
+    memset(dirMap, 0, sizeof(int) * M_WIDTH * M_HEIGHT);
 
     const int xNodeStart = static_cast<int> (start.second + TILE_OFFSET) / TILE_SIZE;
     const int yNodeStart = static_cast<int> (start.first + TILE_OFFSET) / TILE_SIZE;
@@ -362,7 +366,7 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
             newCol = curCol + MX[i];
 
             // not evaluated & not outside (bound checking)
-            if (!(newRow < 0 || newRow > COLS - 1 || newCol < 0 || newCol > ROWS - 1
+            if (!(newRow < 0 || newRow > M_HEIGHT - 1 || newCol < 0 || newCol > M_WIDTH - 1
                 || gameMap[newRow][newCol] >= 1 || closedNodes[newRow][newCol] == 1)) {
 
                 // generate a child node

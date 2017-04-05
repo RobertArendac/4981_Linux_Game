@@ -271,10 +271,11 @@ bool GameManager::createZombie(const float x, const float y) {
     SDL_Rect projRect = temp;
     SDL_Rect damRect = temp;
 
-    zombieManager.insert({id, Zombie(id, zombieRect, moveRect, projRect, damRect)});
+    auto newZombie = zombieManager.insert({id, Zombie(id, zombieRect, moveRect, projRect, damRect)});
 
-    zombieManager.at(id).setPosition(x,y);
-    zombieManager.at(id).setState(ZombieState::ZOMBIE_MOVE);
+    //How do I make these two lines work?
+    newZombie->second.setPosition(x,y);
+    newZombie->second.setState(ZombieState::ZOMBIE_MOVE);
 
     return true;
 }
