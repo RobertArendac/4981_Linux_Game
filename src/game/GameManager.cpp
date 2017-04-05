@@ -289,7 +289,7 @@ void GameManager::createZombie(const int32_t id) {
 * Date: Mar. 1, 2017
 * Modified: Mar. 15 2017 - Mark Tattrie
 * Author:
-* Function Interface: bool GameManager::createZombie(const float x, const float y)
+* Function Interface: int32_t GameManager::createZombie(const float x, const float y)
 * Description:
 * Create zombie add it to manager, returns success
 */
@@ -305,6 +305,22 @@ int32_t GameManager::createZombie(const float x, const float y) {
     const auto& elem = zombieManager.emplace(id, Zombie(id, zombieRect, moveRect, projRect, damRect));
     elem->second.setPosition(x,y);
     elem->second.setState(ZombieState::ZOMBIE_MOVE);
+    return id;
+}
+
+/**
+* Date: April 5, 2017
+*
+* Designed: Isaac M.
+* Programmed: Robert A.
+* Function Interface: int32_t GameManager::createZombie(const Zombie& z)
+* Description:
+* Overloaded createZombie, copies a zombie instead
+*/
+int32_t GameManager::createZombie(Zombie z) {
+    const int32_t id = generateID();
+    z.setId(id);
+    zombieManager.emplace(id, z);
     return id;
 }
 

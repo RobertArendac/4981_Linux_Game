@@ -53,6 +53,7 @@ void dumpEntityPositions(const Player* p){
     //print Zombie Positions
     for (const auto& z : gm->getZombieManager()) {
         printEntityPositions("Zombie", z.first, z.second, entityDump);
+        entityDump << "Path: " << z.second.getPath() << "\n";
     }
 
     entityDump << "\nAll WEAPON DROP POSITIONS:\n";

@@ -95,7 +95,7 @@ public:
         const SDL_Rect& damageSize, const int health = ZOMBIE_INIT_HP,
         const ZombieState state = ZombieState::ZOMBIE_IDLE,
         const int step = 0, const ZombieDirection dir = ZombieDirection::DIR_INVALID,
-        const int frame = ZOMBIE_FRAMES);
+        const int frame = 0);
 
     virtual ~Zombie();
 

@@ -19,28 +19,38 @@ void MatchManager::spawnZombies() {
         return;
     }
     spawnTick = currentTime;
-    
-    const int32_t id = GameManager::instance()->createZombie(0, 0);
-    Zombie& zombie = GameManager::instance()->getZombie(id);
+
     CollisionHandler& ch = GameManager::instance()->getCollisionHandler();
     for (auto& pos : spawnPoints) {
         if (zombiesToSpawn > 0) {
-            zombie.setPosition(pos.x, pos.y);
             if (!ch.detectMovementCollision(ch.getQuadTreeEntities(
-                    ch.quadtreeMarine,&zombie),&zombie)
-                    || ch.detectMovementCollision(ch.getQuadTreeEntities(ch.quadtreeZombie,&zombie),&zombie)) {
-                GameManager::instance()->createZombie(pos.x, pos.y);
-                --zombiesToSpawn; 
+                    ch.quadtreeMarine,&pos),&pos)
+                    || ch.detectMovementCollision(ch.getQuadTreeEntities(ch.quadtreeZombie,&pos),&pos)) {
+                GameManager::instance()->createZombie(pos);
+                --zombiesToSpawn;
             }
         } else {
            break;
         }
     }
-    GameManager::instance()->deleteZombie(id);
 }
 
+/**
+* Date: April 5, 2017
+*
+* Designed: Isaac M.
+* Programmed: Robert A.
+* Function Interface: void MatchManager::setSpawnPoints(std::vector<MapPoint> points)
+* Description:
+* Inserts all the spawn points.  Each spawn point is associated with a zombie
+*/
 void MatchManager::setSpawnPoints(std::vector<MapPoint> points) {
-    spawnPoints = points;
+    SDL_Rect temp = {INITVAL, INITVAL, ZOMBIE_WIDTH, ZOMBIE_HEIGHT};
+    for (const auto& p : points) {
+        temp.x = p.x+5;
+        temp.y = p.y+5;
+        spawnPoints.emplace_back(0, temp, temp, temp, temp, 100, ZombieState::ZOMBIE_MOVE);
+    }
 }
 
 void MatchManager::newRound() {

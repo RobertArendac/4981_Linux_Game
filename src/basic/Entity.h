@@ -1,20 +1,20 @@
 /*------------------------------------------------------------------------------
-* Header: Entity.h   
+* Header: Entity.h
 *
 * Functions:
-*    
 *
-* Date: 
 *
-* Revisions: 
+* Date:
+*
+* Revisions:
 * Edited By : Yiaoping Shu- Style guide
 *
-* Designer: 
+* Designer:
 *
-* Author: 
+* Author:
 *
 * Notes:
-*  
+*
 ------------------------------------------------------------------------------*/
 #ifndef ENTITY_H
 #define ENTITY_H
@@ -57,8 +57,9 @@ public:
     int getH() const{return destRect.h;} // Get height
     void updateHitBoxes(); // update hitbox positions
     void updateRectHitBoxes(); // update hitbox sizes
-    
+
     int32_t getId()const{return id;}; //returns the id of the entity
+    void setId(int32_t newId) { id = newId; };  //Fix for zombies, do not use
 
 
     const HitBox& getMoveHitBox()const {return movementHitBox;};

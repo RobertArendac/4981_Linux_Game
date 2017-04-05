@@ -55,6 +55,7 @@ bool GameStateMatch::load() {
     m.mapLoadToGame();
     GameManager::instance()->setAiMap(m.getAIMap());
     matchManager.setSpawnPoints(m.getZombieSpawn());
+
     return success;
 }
 

@@ -92,6 +92,7 @@ public:
     int32_t addZombie(const Zombie&);
     void createZombie(const int32_t id);
     int32_t createZombie(const float x, const float y);
+    int32_t createZombie(Zombie z);
     void deleteZombie(const int32_t id);
     bool zombieExists(const int32_t id);
     Zombie& getZombie(const int32_t id);

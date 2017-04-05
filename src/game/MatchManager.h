@@ -18,19 +18,19 @@ public:
 
     MatchManager();
     ~MatchManager() = default;
-    
+
     void checkMatchState();
     void newRound();
     void spawnZombies();
     void setSpawnPoints(std::vector<MapPoint> points);
 
 private:
-    
+
     unsigned int round;
     int spawnTick;
-     unsigned int zombiesToSpawn;
-    std::vector<MapPoint> spawnPoints;
-    
+    unsigned int zombiesToSpawn;
+    std::vector<Zombie> spawnPoints;
+
 };
 
 #endif

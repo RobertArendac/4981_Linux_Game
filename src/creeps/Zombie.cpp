@@ -34,6 +34,7 @@ Zombie::Zombie(const int32_t id, const SDL_Rect& dest, const SDL_Rect& movementS
         health(health), state(state), step(step), dir(dir), frame(frame) {
     logv("Create Zombie\n");
     inventory.initZombie();
+    path = generatePath(Point(getX(),getY()));
 }
 
 Zombie::~Zombie() {
@@ -50,9 +51,18 @@ ZombieDirection Zombie::getMoveDir() {
         return dir;
     }
 
-    string pth = generatePath(Point(getX(),getY()));
+    if (path.empty()) {
+        path = generatePath(Point(getX(),getY()));
 
-    return static_cast<ZombieDirection>(pth.length() > 0 ? stoi(pth.substr(0,1)) : -1);
+        return static_cast<ZombieDirection>(path.length() > 0 ? stoi(path.substr(0,1)) : -1);
+    } else {
+        string temp = path.substr(0, 1);
+        path = path.substr(1);
+
+        return static_cast<ZombieDirection>(temp.length() > 0 ? stoi(temp) : -1);
+    }
+
+
 }
 
 void Zombie::onCollision() {
