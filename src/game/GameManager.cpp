@@ -262,7 +262,7 @@ int32_t GameManager::addZombie(const Zombie& newZombie) {
 * Description:
 * Create zombie add it to manager, returns success
 */
-bool GameManager::createZombie(const float x, const float y) {
+int32_t GameManager::createZombie(const float x, const float y) {
     const int32_t id = generateID();
     SDL_Rect temp = {INITVAL, INITVAL, DEFAULT_SIZE, DEFAULT_SIZE};
 
@@ -271,13 +271,10 @@ bool GameManager::createZombie(const float x, const float y) {
     SDL_Rect projRect = temp;
     SDL_Rect damRect = temp;
 
-    auto newZombie = zombieManager.insert({id, Zombie(id, zombieRect, moveRect, projRect, damRect)});
-
-    //How do I make these two lines work?
-    newZombie->second.setPosition(x,y);
-    newZombie->second.setState(ZombieState::ZOMBIE_MOVE);
-
-    return true;
+    const auto& elem = zombieManager.emplace(id, Zombie(id, zombieRect, moveRect, projRect, damRect));
+    elem->second.setPosition(x,y);
+    elem->second.setState(ZombieState::ZOMBIE_MOVE);
+    return id;
 }
 
 // Deletes zombie from level
@@ -632,22 +629,4 @@ void GameManager::setBoundary(const float startX, const float startY, const floa
     createWall(sX, sY + (height / 4 * 3), width, height / 4);
     createWall(eX, sY, width, height / 1.5);
     createWall(eX, sY + (height / 4 * 3), width, height / 4);
-}
-
-bool GameManager::createZombieWave(const int n) {
-    std::vector<Point> spawnPoints;
-    spawnPoints.emplace_back(100, 100);
-    spawnPoints.emplace_back(500, 100);
-    spawnPoints.emplace_back(1900, 900);
-    spawnPoints.emplace_back(2900, 900);
-    spawnPoints.emplace_back(2900, 2900);
-    spawnPoints.emplace_back(1900, 2900);
-    spawnPoints.emplace_back(900, 2900);
-
-    for (int i = 0; i < n; ++i) {
-        for (const auto& p : spawnPoints) {
-            createZombie(p.first, p.second);
-        }
-    }
-    return true;
 }

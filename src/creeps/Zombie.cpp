@@ -1,20 +1,20 @@
 /*------------------------------------------------------------------------------
-* Source: Zombie.cpp    
+* Source: Zombie.cpp
 *
 * Functions:
-*    
 *
-* Date: 
 *
-* Revisions: 
+* Date:
+*
+* Revisions:
 * Edited By : Yiaoping Shu- Style guide
 *
-* Designer: 
+* Designer:
 *
-* Author: 
+* Author:
 *
 * Notes:
-*  
+*
 ------------------------------------------------------------------------------*/
 #include <math.h>
 #include <random>
@@ -313,7 +313,7 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
     int i, j;
 
     //Boolean map of obstacles
-    auto gameMap = getAIMap();
+    auto gameMap = GameManager::instance()->getAiMap();
 
     // priority queue index
     int index = 0;
