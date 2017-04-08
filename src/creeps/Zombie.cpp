@@ -2,18 +2,30 @@
 * Source: Zombie.cpp
 *
 * Functions:
+*       void zAttack();
+*       void onCollision();
+*       void generateMove();
+*       bool isMoving() const;
+*       int detectObj() const;
+*       ZombieDirection getMoveDir();
+*       ZombieDirection getMonteDir();
+*       void validateBlockMatrix();
+*       void collidingProjectile(int damage);
+*       string generatePath(const Point& start);
+*       string generatePath(const Point& start, const Point& dest);
+*       void move(float moveX, float moveY, CollisionHandler& ch);
 *
+* Date: February 12, 2017
 *
-* Date:
-*
-* Revisions:
+* Revisions: April 8, 2017
 * Edited By : Yiaoping Shu- Style guide
 *
-* Designer:
+* Designer:    GM Team, AI Team
 *
-* Author:
+* Programmer:  AI Team
 *
 * Notes:
+* This class wraps A* / Monte Carlo algorithms and other basic methods for Zombie.
 *
 ------------------------------------------------------------------------------*/
 #include <math.h>
@@ -25,8 +37,30 @@
 #include "../game/GameManager.h"
 #include "../log/log.h"
 #include "../map/Map.h"
+
 using namespace std;
 
+/**
+ * Date:    February 14, 2017
+ *
+ * Author:  AI Team, GM Team
+ *
+ * Function Interface: Zombie()
+ * Parameters:
+ *      const int32_t id: Zombie's ID
+ *      const SDL_Rect& dest: Zombie's size
+ *      const SDL_Rect& movementSize: movement range (for collision checks)
+ *      const SDL_Rect& projectileSize: weapon size
+ *      const SDL_Rect& damageSize: damage range
+ *      const int health: health points
+ *      const ZombieState state: state. 0- idle, 1- move, 2- attack, 3- die
+ *      const int step: steps that the zombie has moved
+ *      const ZombieDirection dir: moving direction
+ *      const int frame: used to make sure the zombie doesn't move through the path too quickly/slowly
+ *
+ * Note:
+ * Zombie object Constructor, creates a zombie object based on the parameters specified.
+ */
 Zombie::Zombie(const int32_t id, const SDL_Rect& dest, const SDL_Rect& movementSize, const SDL_Rect& projectileSize,
         const SDL_Rect& damageSize, const int health, const ZombieState state, const int step,
         const ZombieDirection dir, const int frame) : Entity(id, dest, movementSize, projectileSize,
@@ -34,41 +68,144 @@ Zombie::Zombie(const int32_t id, const SDL_Rect& dest, const SDL_Rect& movementS
         health(health), state(state), step(step), dir(dir), frame(frame) {
     logv("Create Zombie\n");
     inventory.initZombie();
-    path = generatePath(Point(getX(),getY()));
 }
 
+/**
+ * Date:    February 14, 2017
+ *
+ * Author:  AI Team, GM Team
+ *
+ * Function Interface: ~Zombie()
+ *
+ * Note:
+ * Zombie object destructor.
+ */
 Zombie::~Zombie() {
     logv("Destroy Zombie\n");
 }
 
 /**
- * Get move direction
- * Fred Yang
- * February 14
+ * Date:    February 14, 2017
+ *
+ * Author:  Fred Yang
+ *
+ * Function Interface: ZombieDirection getMoveDir()
+ * Returns: returns zombie moving direction
+ *
+ * Note:
+ * Get zombie's moving direction by calling A star / Monte Carlo algos.
+ * A Star time complexity: O(logN).
+ * Monte Carlo time complexity: O(1).
  */
 ZombieDirection Zombie::getMoveDir() {
     if (frame > 0) {
         return dir;
     }
 
-    if (path.empty()) {
-        path = generatePath(Point(getX(),getY()));
-
-        return static_cast<ZombieDirection>(path.length() > 0 ? stoi(path.substr(0,1)) : -1);
-    } else {
-        string temp = path.substr(0, 1);
-        path = path.substr(1);
-
-        return static_cast<ZombieDirection>(temp.length() > 0 ? stoi(temp) : -1);
+    /* 
+     * calculate move direction using Monte Carlo method if the
+     * zombie already arrived at the base zone. Save cpu time
+     */
+    if (targeted) {
+        return getMonteDir();
     }
+    
+    // A* algo
+    string pth = generatePath(Point(getX(),getY()));
 
-
+    return static_cast<ZombieDirection>(pth.length() > 0 ? stoi(pth.substr(0,1)) : -1);
 }
 
+/**
+ * Date:    April 7, 2017
+ *
+ * Author:  Fred Yang
+ *
+ * Function Interface: ZombieDirection getMonteDir()
+ * Returns: returns zombie moving direction
+ *
+ * Note:
+ * Get zombie's moving direction by calling Monte Carlo algo.
+ * Monte Carlo time complexity: O(1).
+ */
+ZombieDirection Zombie::getMonteDir() {
+    // how many choices we have
+    int best[2] = {0};
+    int bestCount = 0;
+    int distance = INT_MAX;
+    
+    // current row & column
+    const int row = getY() / T_SIZE;
+    const int col = getX() / T_SIZE;
+    
+    // current moving direction
+    const int d = static_cast<int>(dir);
+    
+    // backward direction - avoid blocking
+    const int backDir = (d > -1 ? (d + DIR_CAP / 2) % DIR_CAP : d);
+    
+    for (int i = 0; i < DIR_CAP; i++){
+        int tempCol = col + MX[i];
+        int tempRow = row + MY[i];
+
+        int zx = tempCol * T_SIZE + T_SIZE / 2;
+        int zy = tempRow * T_SIZE + T_SIZE / 2;
+        
+        //calculates Monte Carlo distance
+        int mcDistance = abs(zx - M_WIDTH / 2) + abs(zy - M_HEIGHT / 2);
+        
+        if (mcDistance < distance) {
+            best[0] = i;
+            distance = mcDistance;
+            bestCount = 1;
+        } else if (mcDistance == distance){
+            best[1] = i;
+            bestCount = 2;
+        }
+    }
+    
+    if (bestCount == 1) {
+        return static_cast<ZombieDirection>(best[0]);
+    } else if (bestCount == 2) {
+        if (backDir == -1 || (best[0] != backDir && best[1] != backDir)) {
+            return static_cast<ZombieDirection>(best[rand() % 2]);
+        } else{
+            return static_cast<ZombieDirection>(best[(best[0] == backDir ? 1 : 0)]);
+        }
+    }
+    
+    return static_cast<ZombieDirection>(backDir);
+}
+
+/**
+ * Date:    February 12, 2017
+ *
+ * Author:  GM Team
+ *
+ * Function Interface: void onCollision()
+ * Returns: void
+ *
+ * Note:
+ * Do nothing for now.
+ */
 void Zombie::onCollision() {
     // Do nothing for now
 }
 
+/**
+ * Date:    February 12, 2017
+ *
+ * Author:  GM Team
+ *
+ * Function Interface: collidingProjectile(int damage)
+ * Paramters
+ *      int damage: the damage value that a projectile causes
+ *
+ * Returns: void
+ *
+ * Note:
+ * Zombie's HP declines when collided with a projectile.
+ */
 void Zombie::collidingProjectile(int damage) {
     health -= damage;
     if (health <= 0) {
@@ -76,37 +213,37 @@ void Zombie::collidingProjectile(int damage) {
     }
 }
 
-void Zombie::attack() {
-    // Do nothing for now
-}
-
-void Zombie::die() {
-    // Do nothing for now
-}
-
 /**
- * Returns if the zombie is moving
- * Robert Arendac
- * March 7
-*/
+ * Date:    March 7, 2017
+ *
+ * Author:  Robert Arendac
+ *
+ * Function Interface: bool isMoving() const
+ *
+ * Returns: true if the zombie is moving; false otherwise
+ *
+ * Note:
+ * Returns if the zombie is moving.
+ */
 bool Zombie::isMoving() const {
     return (state == ZombieState::ZOMBIE_MOVE);
 }
 
 /**
- * Robert Arendac, Fred Yang
- * March 28
+ * Date:    March 28, 2017
  *
- * Zombie detects objects in vicinity.
- * In theory, zombies will only have a movement collision with a target
- * as their pathfinding should walk around obstacles.
- * Return:  0- nothing, 1- zombie, 2- wall, 3- marine,
+ * Author:  Robert Arendac, Fred Yang
+ *
+ * Function Interface:  int detectObj() const
+ * 
+ * Returns: 0- nothing, 1- zombie, 2- wall, 3- marine,
  *          4- turret, 5- barricade, 6- other objects(base tower)
  *
  * Note:
- * It's important for Zombie to know what exactly the object is.
- * object typeId can be defined in GameManage.h
-*/
+ * Zombie detects objects in vicinity.
+ * In theory, zombies will only have a movement collision with a target
+ * as their pathfinding should walk around obstacles.
+ */
 int Zombie::detectObj() const {
     int objTypeId = 0;
     auto ch = GameManager::instance()->getCollisionHandler();
@@ -129,12 +266,26 @@ int Zombie::detectObj() const {
 }
 
 /**
- * overriden move method, preventing zombies from blocking
- * Fred Yang,  Robert Arendac
- * March 15
-*/
-void Zombie::move(float moveX, float moveY, CollisionHandler& ch){
+ * Date:    March 15, 2017
+ *
+ * Author:  Fred Yang, Robert Arendac
+ *
+ * Function Interface: void move(float moveX, float moveY, CollisionHandler& ch)
+ * Paramters
+ *      float moveX: move span along x
+ *      flaot moveY: move span along y
+ *      CollisionHandler& ch: references to CollisionHanlder
+ *
+ * Returns: void
+ *
+ * Note:
+ * overriden move method, preventing zombies from blocking.
+ */
+void Zombie::move(float moveX, float moveY, CollisionHandler& ch) {
+    // new moving direction to be calulated
     ZombieDirection newDir = ZombieDirection::DIR_INVALID;
+    
+    // backup moving direction retrieved from the path
     ZombieDirection nextDir = ZombieDirection::DIR_INVALID;
 
     const float oldX = getX();
@@ -156,15 +307,25 @@ void Zombie::move(float moveX, float moveY, CollisionHandler& ch){
 
     const float curX = getX();
     const float curY = getY();
-    const float dist = sqrt((curX - oldX)*(curX - oldX) + (curY - oldY)*(curY - oldY));
+    const float distBlock = sqrt((curX - oldX)*(curX - oldX) 
+        + (curY - oldY)*(curY - oldY));
+    const float distBase = sqrt((curX - M_WIDTH * T_SIZE / 2)*(curX - M_WIDTH * T_SIZE / 2) 
+        + (curY - M_HEIGHT * T_SIZE / 2)*(curY - M_HEIGHT * T_SIZE / 2));
+    
+    // check if the zombie moves into the base zone
+    if (distBase <= BASE_ZONE * T_SIZE) {
+        targeted = true;
+    } else {
+        targeted = false;
+    }
 
     // zombie blocked
-    if (dist < BLOCK_THRESHOLD) {
+    if (distBlock < BLOCK_THRESHOLD) {
         string pth = getPath();
         size_t found = pth.find_first_not_of('0' + static_cast<int>(dir));
 
         if (found != string::npos) {
-          nextDir = static_cast<ZombieDirection>(stoi(pth.substr(found, 1)));
+            nextDir = static_cast<ZombieDirection>(stoi(pth.substr(found, 1)));
         }
 
         // If blocked, searching for better direction
@@ -211,10 +372,17 @@ void Zombie::move(float moveX, float moveY, CollisionHandler& ch){
 }
 
 /**
- * Get the direction of the zombie and take a step in the appropriate direction
- * Robert Arendac, Fred Yang
- * March 28
-*/
+ * Date:    March 28, 2017
+ *
+ * Author:  Robert Arendac, Fred Yang
+ *
+ * Function Interface: void generateMove()
+ *
+ * Returns: void
+ *
+ * Note:
+ * Get the direction of the zombie and take a step in the appropriate direction.
+ */
 void Zombie::generateMove() {
      // Direction zombie is moving
     const ZombieDirection direction = getMoveDir();
@@ -291,8 +459,13 @@ void Zombie::generateMove() {
         case ZombieDirection::DIR_INVALID:  // Shouldn't ever happens, gets rid of warning
             break;
     }
+    
     zAttack();
-    // Frames are used to make sure the zombie doesn't move through the path too quickly/slowly
+    
+    /* 
+     * Frames are used to make sure the zombie doesn't move through
+     * the path too quickly/slowly
+     */
     if (frame > 0) {
         --frame;
     } else {
@@ -305,25 +478,37 @@ void Zombie::generateMove() {
 }
 
 /**
- * A* algo generates a string of direction digits.
- * Fred Yang
- * March 15
+ * Date:    March 15, 2017
+ *
+ * Author:  Fred Yang
+ *
+ * Function Interface: string generatePath(const Point& start)
+ *
+ * Returns: a string of direction digits
+ *
+ * Note:
+ * Overloaded generatePath(const Point& start, const Point& dest) method.
  */
 string Zombie::generatePath(const Point& start) {
-    return generatePath(start, Point(MAP_WIDTH / 2, MAP_HEIGHT / 2));
+    return generatePath(start, Point(M_WIDTH * T_SIZE / 2, M_HEIGHT * T_SIZE / 2));
 }
 
 /**
- * A* algo generates a string of direction digits.
- * Fred Yang
- * Feb 14
+ * Date:    March 15, 2017
+ *
+ * Author:  Fred Yang
+ *
+ * Function Interface: string generatePath(const Point& start, const Point& dest)
+ *
+ * Returns: a string of direction digits
+ *
+ * Note:
+ * A star algo generates a string of direction digits.
+ * A Star time complexity: O(logN).
  */
 string Zombie::generatePath(const Point& start, const Point& dest) {
     // temp index
     int i, j;
-
-    //Boolean map of obstacles
-    auto gameMap = GameManager::instance()->getAiMap();
 
     // priority queue index
     int index = 0;
@@ -337,16 +522,20 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
 
     // priority queue
     static array<priority_queue<Node>, 2> pq;
-
+   
     // reset the node maps
     memset(closedNodes, 0, sizeof(int) * M_WIDTH * M_HEIGHT);
     memset(openNodes, 0, sizeof(int) * M_WIDTH * M_HEIGHT);
     memset(dirMap, 0, sizeof(int) * M_WIDTH * M_HEIGHT);
 
-    const int xNodeStart = static_cast<int> (start.second + TILE_OFFSET) / TILE_SIZE;
-    const int yNodeStart = static_cast<int> (start.first + TILE_OFFSET) / TILE_SIZE;
-    const int xNodeDest = static_cast<int> (dest.second + TILE_OFFSET) / TILE_SIZE - 1;
-    const int yNodeDest = static_cast<int> (dest.first + TILE_OFFSET) / TILE_SIZE - 1;
+    // boolean map of obstacles
+    validateBlockMatrix();
+    
+    // calculate start & end nodes
+    const int xNodeStart = static_cast<int>(start.second) / T_SIZE;
+    const int yNodeStart = static_cast<int>(start.first) / T_SIZE;
+    const int xNodeDest = static_cast<int>(dest.second) / T_SIZE - 1;
+    const int yNodeDest = static_cast<int>(dest.first) / T_SIZE - 1;
 
     // create the start node and push into open list
     Node curNode(xNodeStart, yNodeStart);
@@ -388,7 +577,7 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
         }
 
         // traverse neighbors
-        for (i = 0; i < DIR_CAP;i++) {
+        for (i = 0; i < DIR_CAP; i++) {
             // neighbor coordinates
             newRow = curRow + MY[i];
             newCol = curCol + MX[i];
@@ -446,10 +635,33 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
 }
 
 /**
- * Date: Mar. 28, 2017
- * Author: Mark Tattrie
- * Function Interface: void Zombie::zAttack()
- * Description:
+ * Date:    April 8, 2017
+ *
+ * Author:  Fred Yang
+ *
+ * Function Interface: void validateBlockMatrix()
+ *
+ * Returns: void
+ *
+ * Note:
+ * Called to validate blocking matrix.
+ */
+void Zombie::validateBlockMatrix() {
+    if (gameMap[0][0] == 0) {
+        gameMap = GameManager::instance()->getAiMap();
+    }
+}
+
+/**
+ * Date:    March 28, 2017
+ *
+ * Author:  Mark Tattrie
+ *
+ * Function Interface: void zAttack()
+ *
+ * Returns: void
+ *
+ * Note:
  * Calls the zombies current weapon "ZombieHands" to fire
  */
 void Zombie::zAttack(){

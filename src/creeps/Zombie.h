@@ -1,20 +1,18 @@
 /*------------------------------------------------------------------------------
-* Header: Zombie.h
+* Header:     Zombie.h
 *
-* Functions:
-*
-*
-* Date:
+* Date:       February 1, 2017
 *
 * Revisions:
-* Edited By : Yiaoping Shu- Style guide
+* Edited By:  Yiaoping Shu- Style guide
 *
-* Designer:
+* Designer:   GM Team, AI Team
 *
-* Author:
+* Author:     GM Team, AI Team
 *
 * Notes:
-*
+* This header file includes the macro definitions and function prototypes
+* for Zombie class.
 ------------------------------------------------------------------------------*/
 #ifndef ZOMBIE_H
 #define ZOMBIE_H
@@ -37,18 +35,24 @@
 
 typedef std::pair<float, float> Point;
 
+// zombie properties
 static constexpr int ZOMBIE_HEIGHT   = 125;
 static constexpr int ZOMBIE_WIDTH    = 75;
 static constexpr int ZOMBIE_INIT_HP  = 100;
-static constexpr int ZOMBIE_VELOCITY = 150;
-static constexpr int ZOMBIE_FRAMES   = 30;
+static constexpr int ZOMBIE_VELOCITY = 250;
+static constexpr int ZOMBIE_FRAMES   = 100;
 
 // block threshold - check if zombie is blocked
 static constexpr float BLOCK_THRESHOLD = 0.5;
 
-/* 8 possible directions combining left, right, up, down.
- * Fred Yang
- * Feb 14
+// tower zone - check if zombie appears in the vicinity of the base
+static constexpr int BASE_ZONE = 5;
+
+/**
+ * Date:    February 14, 2017
+ * Author:  Fred Yang
+ * Note:
+ * 8 possible directions combining left, right, up, down.
  */
 enum class ZombieDirection : int {
     DIR_R,
@@ -62,9 +66,11 @@ enum class ZombieDirection : int {
     DIR_INVALID = -1
 };
 
-/* Cardinal directions for setting angles, one angle for each movement direction.
- * Robert Arendac
- * March 14
+/**
+ * Date:    March 14, 2017
+ * Author:  Robert Arendac
+ * Note:
+ * Cardinal directions for setting angles, one angle for each movement direction.
  */
 enum class ZombieAngles : int {
     NORTH = 0,
@@ -77,10 +83,12 @@ enum class ZombieAngles : int {
     NORTHWEST = 315
 };
 
-/* zombie states, change when you want zombie to take a different action.
+/**
+ * Date:    March 14, 2017
+ * Author:  Fred Yang
+ * Note:
+ * Zombie states, change when you want zombie to take a different action.
  * Eg. go from moving to attacking
- * Fred Yang
- * March 14
  */
 enum class ZombieState {
     ZOMBIE_IDLE,
@@ -91,124 +99,125 @@ enum class ZombieState {
 
 class Zombie : public Movable {
 public:
+    // constructor
     Zombie(const int32_t id, const SDL_Rect& dest, const SDL_Rect& movementSize, const SDL_Rect& projectileSize,
         const SDL_Rect& damageSize, const int health = ZOMBIE_INIT_HP,
         const ZombieState state = ZombieState::ZOMBIE_IDLE,
         const int step = 0, const ZombieDirection dir = ZombieDirection::DIR_INVALID,
-        const int frame = 0);
+        const int frame = ZOMBIE_FRAMES);
 
-    virtual ~Zombie();
+    virtual ~Zombie();                      // destructor
 
+    void onCollision();                     // collision checks
 
-    void onCollision();
-
-    void collidingProjectile(int damage);
+    void collidingProjectile(int damage);   // projectile damage method
 
     void move(float moveX, float moveY, CollisionHandler& ch) override;  // move method
-    int getHealth() const {return health;}
-    void setHealth(const int h) {health = h;}
+    
+    int getHealth() const {return health;}  // hp getter
+    
+    void setHealth(const int h) {health = h;} // hp setter
 
-    void generateMove();                    // A* movement
+    void generateMove();                    // A* movement method
 
     bool isMoving() const;                  // Returns if the zombie should be moving
 
     int detectObj() const;                  // detect objects in vicinity
 
-    void attack();                          // attack/destroy marines, turrets, or barricades
-
-    void die();                             // zombie die method
+    void validateBlockMatrix();             // validate blocking matrix
 
     ZombieDirection getMoveDir();           // get move direction
+    
+    ZombieDirection getMonteDir();          // get Monte Carlo move direction
 
-    // A* path
-    std::string generatePath(const Point& start);
-    std::string generatePath(const Point& start, const Point& dest);
+    std::string generatePath(const Point& start); // A* method
+    std::string generatePath(const Point& start, const Point& dest); // A* method
 
     /**
-     * Set steps taken
-     * Fred Yang
-     * Feb 14
+     * Date:    February 14, 2017
+     * Author:  Fred Yang 
+     * Note:    steps setter
      */
     void setStep(const int sp) {
         step = sp;
     }
 
     /**
-     * Get steps taken
-     * Fred Yang
-     * Feb 14
+     * Date:    February 14, 2017
+     * Author:  Fred Yang 
+     * Note:    steps getter
      */
     int getStep() const {
         return step;
     }
 
     /**
-     * Set state
-     * Fred Yang
-     * March 14
+     * Date:    February 14, 2017
+     * Author:  Fred Yang 
+     * Note:    state setter
      */
     void setState(const ZombieState newState) {
         state = newState;
     }
 
     /**
-     * Get state
-     * Fred Yang
-     * March 14
+     * Date:    February 14, 2017
+     * Author:  Fred Yang 
+     * Note:    state setter
      */
     ZombieState getState() const {
         return state;
     }
 
     /**
-     * Get A* path
-     * Fred Yang
-     * Feb 14
+     * Date:    February 14, 2017
+     * Author:  Fred Yang 
+     * Note:    A* path getter
      */
     string getPath() const {
         return path;
     }
 
     /**
-     * Set A* path
-     * Fred Yang
-     * Feb 14
+     * Date:    February 14, 2017
+     * Author:  Fred Yang 
+     * Note:    A* path setter
      */
     void setPath(const string pth) {
         path = pth;
     }
 
     /**
-     * Set direction
-     * Fred Yang
-     * March 14
+     * Date:    February 14, 2017
+     * Author:  Fred Yang 
+     * Note:    set current moving direction
      */
     void setCurDir(const ZombieDirection d) {
         dir = d;
     }
 
     /**
-     * Get current direction
-     * Fred Yang
-     * March 14
+     * Date:    February 14, 2017
+     * Author:  Fred Yang 
+     * Note:    get current moving direction
      */
     ZombieDirection getCurDir() const {
         return dir;
     }
 
     /**
-     * Set frame
-     * Fred Yang
-     * March 14
+     * Date:    March 14, 2017
+     * Author:  Fred Yang 
+     * Note:    frame setter
      */
     void setCurFrame(const int frm) {
         frame = frm;
     }
 
     /**
-     * Get current frame
-     * Fred Yang
-     * March 14
+     * Date:    March 14, 2017
+     * Author:  Fred Yang 
+     * Note:    frame getter
      */
     int getCurFrame() const {
         return frame;
@@ -221,6 +230,7 @@ private:
     int step;           // Number of steps zombie has taken in path
     ZombieDirection dir;// moving direction
     int frame;          // frames per tile
+    bool targeted;      // indicate if zombie appears in base zone
     Inventory inventory;//inventory holds a weapon used to attack
 
     void zAttack();
