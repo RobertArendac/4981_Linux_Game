@@ -1,3 +1,21 @@
+/*------------------------------------------------------------------------------
+* Source: Zombie.cpp
+*
+* Functions:
+*
+*
+* Date:
+*
+* Revisions:
+* Edited By : Yiaoping Shu- Style guide
+*
+* Designer:
+*
+* Author:
+*
+* Notes:
+*
+------------------------------------------------------------------------------*/
 #include <math.h>
 #include <random>
 #include <cassert>
@@ -6,14 +24,17 @@
 #include "Zombie.h"
 #include "../game/GameManager.h"
 #include "../log/log.h"
+#include "../map/Map.h"
 using namespace std;
 
-Zombie::Zombie(int32_t id, const SDL_Rect &dest, const SDL_Rect &movementSize, const SDL_Rect &projectileSize,
-        const SDL_Rect &damageSize, int health, ZombieState state, int step, ZombieDirection dir, int frame)
-        : Entity(id, dest, movementSize, projectileSize, damageSize),
-        Movable(id, dest, movementSize, projectileSize, damageSize, ZOMBIE_VELOCITY),
+Zombie::Zombie(const int32_t id, const SDL_Rect& dest, const SDL_Rect& movementSize, const SDL_Rect& projectileSize,
+        const SDL_Rect& damageSize, const int health, const ZombieState state, const int step,
+        const ZombieDirection dir, const int frame) : Entity(id, dest, movementSize, projectileSize,
+        damageSize), Movable(id, dest, movementSize, projectileSize, damageSize, ZOMBIE_VELOCITY),
         health(health), state(state), step(step), dir(dir), frame(frame) {
     logv("Create Zombie\n");
+    inventory.initZombie();
+    path = generatePath(Point(getX(),getY()));
 }
 
 Zombie::~Zombie() {
@@ -30,9 +51,18 @@ ZombieDirection Zombie::getMoveDir() {
         return dir;
     }
 
-    string pth = generatePath(Point(getX(),getY()));
+    if (path.empty()) {
+        path = generatePath(Point(getX(),getY()));
 
-    return static_cast<ZombieDirection>(pth.length() > 0 ? stoi(pth.substr(0,1)) : -1);
+        return static_cast<ZombieDirection>(path.length() > 0 ? stoi(path.substr(0,1)) : -1);
+    } else {
+        string temp = path.substr(0, 1);
+        path = path.substr(1);
+
+        return static_cast<ZombieDirection>(temp.length() > 0 ? stoi(temp) : -1);
+    }
+
+
 }
 
 void Zombie::onCollision() {
@@ -41,6 +71,9 @@ void Zombie::onCollision() {
 
 void Zombie::collidingProjectile(int damage) {
     health -= damage;
+    if (health <= 0) {
+        GameManager::instance()->deleteZombie(getId());
+    }
 }
 
 void Zombie::attack() {
@@ -67,7 +100,7 @@ bool Zombie::isMoving() const {
  * Zombie detects objects in vicinity.
  * In theory, zombies will only have a movement collision with a target
  * as their pathfinding should walk around obstacles.
- * Return:  0- nothing, 1- zombie, 2- wall, 3- marine, 
+ * Return:  0- nothing, 1- zombie, 2- wall, 3- marine,
  *          4- turret, 5- barricade, 6- other objects(base tower)
  *
  * Note:
@@ -77,7 +110,7 @@ bool Zombie::isMoving() const {
 int Zombie::detectObj() const {
     int objTypeId = 0;
     auto ch = GameManager::instance()->getCollisionHandler();
-    
+
     if (ch.detectMovementCollision(ch.getQuadTreeEntities(ch.quadtreeZombie, this), this)) {
         objTypeId = 1;
     } else if (ch.detectMovementCollision(ch.getQuadTreeEntities(ch.quadtreeWall, this), this)) {
@@ -91,7 +124,7 @@ int Zombie::detectObj() const {
     } else if (ch.detectMovementCollision(ch.getQuadTreeEntities(ch.quadtreeObj,this),this)) {
         objTypeId = 6;
     }
-    
+
     return objTypeId;
 }
 
@@ -129,7 +162,7 @@ void Zombie::move(float moveX, float moveY, CollisionHandler& ch){
     if (dist < BLOCK_THRESHOLD) {
         string pth = getPath();
         size_t found = pth.find_first_not_of('0' + static_cast<int>(dir));
-        
+
         if (found != string::npos) {
           nextDir = static_cast<ZombieDirection>(stoi(pth.substr(found, 1)));
         }
@@ -137,11 +170,11 @@ void Zombie::move(float moveX, float moveY, CollisionHandler& ch){
         // If blocked, searching for better direction
         switch (dir) {
             case ZombieDirection::DIR_R:
-                newDir = (nextDir == ZombieDirection::DIR_RD ? 
+                newDir = (nextDir == ZombieDirection::DIR_RD ?
                           ZombieDirection::DIR_D : ZombieDirection::DIR_U);
                 break;
             case ZombieDirection::DIR_RD:
-                newDir = (nextDir == ZombieDirection::DIR_D ? 
+                newDir = (nextDir == ZombieDirection::DIR_D ?
                           ZombieDirection::DIR_LD : ZombieDirection::DIR_RU);
                 break;
             case ZombieDirection::DIR_D:
@@ -153,7 +186,7 @@ void Zombie::move(float moveX, float moveY, CollisionHandler& ch){
                           ZombieDirection::DIR_LU : ZombieDirection::DIR_RD);
                 break;
             case ZombieDirection::DIR_L:
-                newDir = (nextDir == ZombieDirection::DIR_LU ? 
+                newDir = (nextDir == ZombieDirection::DIR_LU ?
                           ZombieDirection::DIR_U : ZombieDirection::DIR_D);
                 break;
             case ZombieDirection::DIR_LU:
@@ -188,15 +221,15 @@ void Zombie::generateMove() {
 
     // detect surroundings
     const int collisionObjId = detectObj();
-    
+
     // path is empty, prepared to switch state to IDLE
     if (direction == ZombieDirection::DIR_INVALID) {
         if (frame > 0) {
             --frame;
         }
-        
+
         setState(ZombieState::ZOMBIE_IDLE);
-        
+
         return;
     }
 
@@ -205,16 +238,16 @@ void Zombie::generateMove() {
         if (frame > 0) {
             --frame;
         }
-        
+
         if (collisionObjId > 2) { // base, marine, turret, or barricade
             setState(ZombieState::ZOMBIE_ATTACK);
         }
-        
+
         return;
     }
 
     // Each case will set direction and angle based on the next step in the path
-    switch(direction) {
+    switch (direction) {
         case ZombieDirection::DIR_R:
             setDX(ZOMBIE_VELOCITY);
             setDY(0);
@@ -258,7 +291,7 @@ void Zombie::generateMove() {
         case ZombieDirection::DIR_INVALID:  // Shouldn't ever happens, gets rid of warning
             break;
     }
-
+    zAttack();
     // Frames are used to make sure the zombie doesn't move through the path too quickly/slowly
     if (frame > 0) {
         --frame;
@@ -289,6 +322,9 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
     // temp index
     int i, j;
 
+    //Boolean map of obstacles
+    auto gameMap = GameManager::instance()->getAiMap();
+
     // priority queue index
     int index = 0;
 
@@ -303,9 +339,9 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
     static array<priority_queue<Node>, 2> pq;
 
     // reset the node maps
-    memset(closedNodes, 0, sizeof(int) * ROWS * COLS);
-    memset(openNodes, 0, sizeof(int) * ROWS * COLS);
-    memset(dirMap, 0, sizeof(int) * ROWS * COLS);
+    memset(closedNodes, 0, sizeof(int) * M_WIDTH * M_HEIGHT);
+    memset(openNodes, 0, sizeof(int) * M_WIDTH * M_HEIGHT);
+    memset(dirMap, 0, sizeof(int) * M_WIDTH * M_HEIGHT);
 
     const int xNodeStart = static_cast<int> (start.second + TILE_OFFSET) / TILE_SIZE;
     const int yNodeStart = static_cast<int> (start.first + TILE_OFFSET) / TILE_SIZE;
@@ -321,7 +357,7 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
     while (!pq[index].empty()) {
         // get the current node with the highest priority from open list
         curNode = pq[index].top();
-        
+
         curRow = curNode.getXPos();
         curCol = curNode.getYPos();
 
@@ -358,7 +394,7 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
             newCol = curCol + MX[i];
 
             // not evaluated & not outside (bound checking)
-            if (!(newRow < 0 || newRow > COLS - 1 || newCol < 0 || newCol > ROWS - 1
+            if (!(newRow < 0 || newRow > M_HEIGHT - 1 || newCol < 0 || newCol > M_WIDTH - 1
                 || gameMap[newRow][newCol] >= 1 || closedNodes[newRow][newCol] == 1)) {
 
                 // generate a child node
@@ -370,13 +406,13 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
                 if (openNodes[newRow][newCol] == 0) {
                     openNodes[newRow][newCol] = childNode.getPriority();
                     pq[index].push(childNode);
-                    
+
                     // update the parent direction info
                     dirMap[newRow][newCol] = (i + DIR_CAP / 2) % DIR_CAP;
                 } else if (openNodes[newRow][newCol] > childNode.getPriority()) {
                     // update the priority info
                     openNodes[newRow][newCol] = childNode.getPriority();
-                    
+
                     // update the parent direction info
                     dirMap[newRow][newCol] = (i + DIR_CAP / 2) % DIR_CAP;
 
@@ -407,4 +443,20 @@ string Zombie::generatePath(const Point& start, const Point& dest) {
     }
 
     return ""; // no route found
+}
+
+/**
+ * Date: Mar. 28, 2017
+ * Author: Mark Tattrie
+ * Function Interface: void Zombie::zAttack()
+ * Description:
+ * Calls the zombies current weapon "ZombieHands" to fire
+ */
+void Zombie::zAttack(){
+    Weapon* w = inventory.getCurrent();
+    if (w) {
+        w->fire(*this);
+    } else {
+        logv("Zombie Slot Empty\n");
+    }
 }

@@ -1,3 +1,21 @@
+/*------------------------------------------------------------------------------
+* Header: Entity.h
+*
+* Functions:
+*
+*
+* Date:
+*
+* Revisions:
+* Edited By : Yiaoping Shu- Style guide
+*
+* Designer:
+*
+* Author:
+*
+* Notes:
+*
+------------------------------------------------------------------------------*/
 #ifndef ENTITY_H
 #define ENTITY_H
 
@@ -11,36 +29,37 @@
 class Entity {
 public:
     //all values the same
-    Entity(int32_t nid, const SDL_Rect dest);
+    Entity(const int32_t nid, const SDL_Rect& dest);
     //size and movement different the rest are sprite size
-    Entity(int32_t nid, const SDL_Rect dest, const SDL_Rect &movementSize);
+    Entity(const int32_t nid, const SDL_Rect& dest, const SDL_Rect& movementSize);
     //size movement, and pickup different size, the rest are sprite size
-    Entity(int32_t nid, const SDL_Rect dest, const SDL_Rect &movementSize,
-        const SDL_Rect &pickupSize);
+    Entity(const int32_t nid, const SDL_Rect& dest, const SDL_Rect& movementSize,
+        const SDL_Rect& pickupSize);
     //pickup is the same as sprite size
-    Entity(int32_t nid, const SDL_Rect dest, const SDL_Rect &movementSize,
-        const SDL_Rect &projectileSize, const SDL_Rect &damageSize);
+    Entity(const int32_t nid, const SDL_Rect& dest, const SDL_Rect& movementSize,
+        const SDL_Rect& projectileSize, const SDL_Rect& damageSize);
     //all values are different
-    Entity(int32_t nid, const SDL_Rect dest, const SDL_Rect &movementSize,
-        const SDL_Rect &projectileSize, const SDL_Rect &damageSize, const SDL_Rect &pickupSize);
+    Entity(const int32_t nid, const SDL_Rect& dest, const SDL_Rect& movementSize,
+        const SDL_Rect& projectileSize, const SDL_Rect& damageSize, const SDL_Rect& pickupSize);
 
     ~Entity() = default;
 
 
-    Entity(const Entity &e);
+    Entity(const Entity& e);
     virtual void onCollision();
     virtual void collidingProjectile(const int damage);
     void setPosition(const float x, const float y); // Set marine position
     void setX(float px); //set x coordinate
     void setY(float py); //set y coordinate
-    float getX() const; // get x coordinate
-    float getY() const; // get y coordinate
-    int getW() const;// get w of dest rect
-    int getH() const;// get h of dest rect
+    float getX() const {return x;} // Get x coordinate
+    float getY() const{return y;} // Get y coordinate
+    int getW() const{return destRect.w;} // Get width
+    int getH() const{return destRect.h;} // Get height
     void updateHitBoxes(); // update hitbox positions
     void updateRectHitBoxes(); // update hitbox sizes
 
     int32_t getId()const{return id;}; //returns the id of the entity
+    void setId(int32_t newId) { id = newId; };  //Fix for zombies, do not use
 
 
     const HitBox& getMoveHitBox()const {return movementHitBox;};
@@ -52,16 +71,18 @@ public:
 
     const SDL_Rect& getDestRect() const {return destRect;};
     const SDL_Rect& getSrcRect() const {return srcRect;};
-    void setDestRect(int x, int y, int width, int height);
-    void setSrcRect(int x, int y, int width, int height);
+    void setDestRect(const int x, const int y, const int width, const int height);
+    void setSrcRect(const int x, const int y, const int width, const int height);
 
-    void moveMoveHitBox(int x, int y) { movementHitBox.move(x,y);};
-    void moveProHitBox(int x, int y) { projectileHitBox.move(x,y);};
-    void moveDamHitBox(int x, int y) { damageHitBox.move(x,y);};
-    void movePickUpHitBox(int x, int y) { pickupHitBox.move(x,y);};
+    void moveMoveHitBox(const int x, const int y) { movementHitBox.move(x,y);};
+    void moveProHitBox(const int x, const int y) { projectileHitBox.move(x,y);};
+    void moveDamHitBox(const int x, const int y) { damageHitBox.move(x,y);};
+    void movePickUpHitBox(const int x, const int y) { pickupHitBox.move(x,y);};
 
+    const std::pair<float, float> getMoveCoord() const {return {movementHitBox.getRect().x, movementHitBox.getRect().y};};
+    const std::pair<float, float> getDestCoord() const {return {destRect.x, destRect.y};};
+    const std::pair<float, float> getSrcCoord() const {return {srcRect.x, srcRect.y};};
 private:
-
     int32_t id; //is the index num of the entity in its respective manager
     SDL_Rect destRect;
     SDL_Rect srcRect;

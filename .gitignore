@@ -30,6 +30,13 @@
 # Object folder
 bin/
 
+#vim files
+*.swp
+
 #Code::Blocks
 *.cbp
 *.layout
+
+*.h.gch
+
+*.txt

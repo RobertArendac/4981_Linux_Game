@@ -1,24 +1,26 @@
-/*------------------------------------------------------------------------------------------------------------------
--- HEADER FILE: Node.h
---
--- FUNCTIONS:
-
---
--- DATE:        February 1, 2017
---
--- DESIGNER:    Fred Yang, Robert Arendac
---
--- PROGRAMMER:  Fred Yang, Robert Arendac
---
--- NOTES:
--- Used for the A* algorithm in navigating the map
-----------------------------------------------------------------------------------------------------------------------*/
-
+/*------------------------------------------------------------------------------
+* Header: Zombie.h
+*
+* Functions:
+*
+*
+* Date:         February 1, 2017
+*
+* Revisions:
+* Edited By : Yiaoping Shu- Style guide
+*
+* Designer: Fred Yang
+*
+* Author: Fred Yang
+*
+* Notes:
+* Used for the A* algorithm in navigating the map
+------------------------------------------------------------------------------*/
 #ifndef NODE_H
 #define NODE_H
-#include <math.h>
+#include <cmath>
 #include <queue>
-#include "../game/GameMap.h"
+#include "../map/Map.h"
 #include "../log/log.h"
 
 // 8 possible directions
@@ -32,9 +34,9 @@ static constexpr int EXTEND_COST = 14;
 static constexpr int TILE_SIZE   = 100;
 static constexpr int TILE_OFFSET = 0;
 
-static int closedNodes[ROWS][COLS]; // array of closed nodes (evaluated)
-static int openNodes[ROWS][COLS];   // array of open nodes (to be evaluated)
-static int dirMap[ROWS][COLS];      // array of directions
+static int closedNodes[M_HEIGHT][M_WIDTH]; // array of closed nodes (evaluated)
+static int openNodes[M_HEIGHT][M_WIDTH];   // array of open nodes (to be evaluated)
+static int dirMap[M_HEIGHT][M_WIDTH];      // array of directions
 
 /**
  * 8 possible movements
@@ -49,9 +51,7 @@ public:
     explicit Node(const int xPos = 0, const int yPos = 0, const int lv = 0,
             const int pri = 0) : xPos(xPos), yPos(yPos), lv(lv), pri(pri) {}
 
-    virtual ~Node() {
-        logv("destroy Node\n");
-    } // default dtor
+    virtual ~Node() = default;
 
     // X coordinate of current node
     int getXPos() const {

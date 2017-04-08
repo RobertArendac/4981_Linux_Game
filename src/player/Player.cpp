@@ -1,43 +1,67 @@
-#include <math.h>
+#include <cmath>
 
 #include "Player.h"
+#include "../game/GameManager.h"
+#include "../log/EntityDump.h"
 
-Player::Player() : tempBarricadeID(-1), tempTurretID(-1), holdingTurret(false), pickupTick(0), pickupDelay(200) {
-
+Player::Player() : tempBarricadeID(-1), tempTurretID(-1), holdingTurret(false), pickupTick(0), pickupDelay(200),
+        marine(nullptr) {
+    moveAction.id = static_cast<int32_t>(UDPHeaders::WALK);
+    attackAction.id = static_cast<int32_t>(UDPHeaders::ATTACKACTIONH);
 }
 
-Player::~Player() {
-
+void Player::setControl(Marine* newControl) {
+    marine = newControl;
 }
 
-void Player::setControl(Marine& newControl) {
-    marine = &newControl;
+bool Player::hasChangedAngle() const {
+    return fabs(moveAction.data.ma.direction - marine->getAngle()) > DOUBLE_COMPARISON_PRECISION;
 }
 
+bool Player::hasChangedCourse() const {
+    return moveAction.data.ma.xdel - marine->getDX()
+            || moveAction.data.ma.ydel - marine->getDY();
+}
 
-void Player::handleMouseUpdate(Window& w, float camX, float camY) {
+void Player::sendServMoveAction() {
+    moveAction.data.ma.id = id;
+    moveAction.data.ma.xpos = marine->getX();
+    moveAction.data.ma.ypos = marine->getY();
+    moveAction.data.ma.xdel = marine->getDX();
+    moveAction.data.ma.ydel = marine->getDY();
+    moveAction.data.ma.vel = marine->getVelocity();
+    moveAction.data.ma.direction = marine->getAngle();
+    NetworkManager::instance().writeUDPSocket((char *)&moveAction, sizeof(ClientMessage));
+}
+
+void Player::sendServAttackAction() {
+    attackAction.data.aa.playerid = id;
+    attackAction.data.aa.actionid = static_cast<int32_t>(UDPHeaders::SHOOT);
+    attackAction.data.aa.weaponid = marine->inventory.getCurrent()->getID();
+    attackAction.data.aa.xpos = marine->getX();
+    attackAction.data.aa.ypos = marine->getY();
+    attackAction.data.aa.direction = marine->getAngle();
+
+    NetworkManager::instance().writeUDPSocket((char *)&attackAction, sizeof(ClientMessage));
+}
+
+void Player::handleMouseUpdate(const int winWidth, const int winHeight, const float camX, const float camY) {
     int mouseX;
     int mouseY;
-    int mouseDeltaX;
-    int mouseDeltaY;
-    double radianConvert = 180.0000;
-
     SDL_GetMouseState(&mouseX, &mouseY);
-    mouseDeltaX = w.getWidth()/2 - mouseX;
-    mouseDeltaY = w.getHeight()/2 - mouseY;
+    const int mouseDeltaX = winWidth / 2 - mouseX;
+    const int mouseDeltaY = winHeight / 2 - mouseY;
 
-    double angle = ((atan2(mouseDeltaX, mouseDeltaY)* radianConvert)/M_PI) * - 1;
-
-    marine->setAngle(angle);
+    marine->setAngle(((atan2(mouseDeltaX, mouseDeltaY)* 180.0)/M_PI) * - 1);
 
     if (tempBarricadeID > -1) {
-        Barricade &tempBarricade = GameManager::instance()->getBarricade(tempBarricadeID);
+        Barricade& tempBarricade = GameManager::instance()->getBarricade(tempBarricadeID);
         tempBarricade.move(marine->getX(), marine->getY(), mouseX + camX, mouseY + camY,
             GameManager::instance()->getCollisionHandler());
     }
 
     if (tempTurretID > -1) {
-        Turret &tempTurret = GameManager::instance()->getTurret(tempTurretID);
+        Turret& tempTurret = GameManager::instance()->getTurret(tempTurretID);
         tempTurret.move(marine->getX(), marine->getY(), mouseX + camX, mouseY + camY,
             GameManager::instance()->getCollisionHandler());
 
@@ -50,27 +74,33 @@ void Player::handleMouseUpdate(Window& w, float camX, float camY) {
             }
         }
     }
-
+/*
     //fire weapon on left mouse click
-    if (SDL_GetMouseState(nullptr, nullptr) & SDL_BUTTON(SDL_BUTTON_LEFT)) {
-        if(marine->inventory.getCurrent() != nullptr) {
-            if(marine->inventory.getCurrent()->getFireState()) {
-                marine->fireWeapon();
+    if (SDL_GetMouseState(nullptr, nullptr)  &SDL_BUTTON(SDL_BUTTON_LEFT)) {
+        if(marine->inventory.getCurrent() != nullptr){
+            marine->fireWeapon();
+            if (networked) {
+                sendServAttackAction();
             }
         }
     }
-
+*/
 }
 
-void Player::handleMouseWheelInput(const SDL_Event *e) {
+void Player::fireWeapon() {
+    if (marine->inventory.getCurrent() && marine->fireWeapon() && networked) {
+        sendServAttackAction();
+    }
+}
+
+void Player::handleMouseWheelInput(const SDL_Event *e){
     marine->inventory.scrollCurrent(e->wheel.y);
 }
 
 // function to handle mouse-click events
 void Player::handlePlacementClick(SDL_Renderer *renderer) {
-
     if (tempBarricadeID > -1) {
-        Barricade &tempBarricade = GameManager::instance()->getBarricade(tempBarricadeID);
+        Barricade& tempBarricade = GameManager::instance()->getBarricade(tempBarricadeID);
         if (tempBarricade.isPlaceable()) {
             tempBarricade.placeBarricade();
             tempBarricadeID = -1;
@@ -98,42 +128,59 @@ void Player::handleKeyboardInput(const Uint8 *state) {
     }
 
     //Inventory inputs
-    if (state[SDL_SCANCODE_1]) {
+    if (state[SDL_SCANCODE_1]){
         marine->inventory.switchCurrent(0);
-    } else if (state[SDL_SCANCODE_2]) {
+    } else if (state[SDL_SCANCODE_2]){
         marine->inventory.switchCurrent(1);
-    } else if (state[SDL_SCANCODE_3]) {
+    } else if (state[SDL_SCANCODE_3]){
         marine->inventory.switchCurrent(2);
     }
 
     //Weapon input
-    if(state[SDL_SCANCODE_R]) {
-        marine->inventory.getCurrent()->reloadClip();
+    if(state[SDL_SCANCODE_R]){
+        Weapon *w = marine->inventory.getCurrent();
+        if(w){
+            w->reloadClip();
+        }
     }
-    if(state[SDL_SCANCODE_E]) {
+    //pickup button
+    if(state[SDL_SCANCODE_E]){
         const int currentTime = SDL_GetTicks();
 
         if(currentTime > (pickupTick + pickupDelay)) {
             pickupTick = currentTime;
+
             const int checkTurret = marine->checkForPickUp();
-            if (checkTurret > -1 && !holdingTurret) {
+            if (checkTurret > -1 && holdingTurret == false)
+            {
                 tempTurretID = checkTurret;
                 GameManager::instance()->getTurret(tempTurretID).pickUpTurret();
                 holdingTurret = true;
             }
         }
     }
-
+    //Drop button
+    if(state[SDL_SCANCODE_F]){
+        marine->inventory.dropWeapon(marine->getX(), marine->getY());
+    }
+    //use Inventory
     if(state[SDL_SCANCODE_I]) {
         marine->inventory.useItem();
     }
 
+    //added by Maitiu Debug print 4/3/2017
+    if(state[SDL_SCANCODE_PERIOD]){
+        dumpEntityPositions(this);
+    }
     marine->setDY(y);
     marine->setDX(x);
 }
 
 void Player::handleTempBarricade(SDL_Renderer *renderer) {
     if(tempBarricadeID < 0) {
+        if (!marine) {
+            return;
+        }
         const double angle = marine->getAngle();
         tempBarricadeID = GameManager::instance()->createBarricade(
             marine->getX() + PLAYER_PLACE_DISTANCE * cos(angle),
@@ -147,7 +194,6 @@ void Player::handleTempBarricade(SDL_Renderer *renderer) {
 void Player::handleTempTurret(SDL_Renderer *renderer) {
    if(tempTurretID < 0) {
        const double angle = marine->getAngle();
-
        tempTurretID = GameManager::instance()->createTurret(
            marine->getX() + PLAYER_PLACE_DISTANCE * cos(angle),
            marine->getY() + PLAYER_PLACE_DISTANCE * sin(angle));
@@ -156,3 +202,11 @@ void Player::handleTempTurret(SDL_Renderer *renderer) {
        tempTurretID = -1;
    }
 }
+
+void Player::checkMarineState() {
+    if (marine && marine->getHealth() <= 0){
+        GameManager::instance()->deleteMarine(marine->getId());
+        setControl(nullptr);
+    }
+}
+
