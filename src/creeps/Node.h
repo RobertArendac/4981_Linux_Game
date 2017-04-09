@@ -1,20 +1,17 @@
 /*------------------------------------------------------------------------------
-* Header: Zombie.h
-*
-* Functions:
-*
+* Header:       Zombie.h
 *
 * Date:         February 1, 2017
 *
 * Revisions:
-* Edited By : Yiaoping Shu- Style guide
+* Edited By :   Yiaoping Shu- Style guide
 *
-* Designer: Fred Yang
+* Designer:     Fred Yang
 *
-* Author: Fred Yang
+* Author:       Fred Yang
 *
 * Notes:
-* Used for the A* algorithm in navigating the map
+* Used for the A* algorithm in navigating the map.
 ------------------------------------------------------------------------------*/
 #ifndef NODE_H
 #define NODE_H
@@ -30,13 +27,10 @@ static constexpr int DIR_CAP = 8;
 static constexpr int BASE_COST   = 10;
 static constexpr int EXTEND_COST = 14;
 
-// tile size & offset
-static constexpr int TILE_SIZE   = 100;
-static constexpr int TILE_OFFSET = 0;
-
 static int closedNodes[M_HEIGHT][M_WIDTH]; // array of closed nodes (evaluated)
 static int openNodes[M_HEIGHT][M_WIDTH];   // array of open nodes (to be evaluated)
 static int dirMap[M_HEIGHT][M_WIDTH];      // array of directions
+static std::array<std::array<bool, M_WIDTH>, M_HEIGHT> gameMap; // boolean map of obstacles
 
 /**
  * 8 possible movements
@@ -90,9 +84,6 @@ public:
 
         // Euclidian Distance
         return static_cast<int>(sqrt(xDist * xDist + yDist * yDist));
-
-        // Manhattan distance
-        //dist = abs(xDist) + abs(yDist);
 
     }
 
